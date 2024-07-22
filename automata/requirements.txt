@@ -1,0 +1,7 @@
+thrift
+thrift-sasl
+PyHive
+pandas
+hdfs
+pyarrow
+fastparquet
