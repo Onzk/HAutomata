@@ -1,11 +1,29 @@
 import os
+import re
 import pandas as pd
 import warnings
+import requests
+import threading
 from hdfs import InsecureClient
 from pyhive import hive
 from time import sleep
 from utils import printer
+from bs4 import BeautifulSoup
 
+
+# Taille minimale d'un fichier de données
+# en Méga Octets
+min_st_size = 5
+
+# Taille maximale d'un fichier de données
+# en Méga Octets
+max_st_size = 25
+
+# Url vers le site des données
+dataset_url = "https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page"
+
+# Années à charger : [*] => toutes les années
+dataset_of_years = [2019]
 
 # Chemin vers le dossier
 # contenant les fichiers à charger
@@ -96,9 +114,70 @@ def get_current_ids(conn, table: str, only_last=True, id="id") -> list | int:
     df = pd.read_sql(query, conn)
     # Crée la liste des identifiants
     ids = df.iloc[:, 0].tolist()
+    # Si on ne veut que le dernier id
+    if only_last:
+        # Récupère le dernier id
+        last = ([0] + ids)[-1]
+        # Retourne 0 s'il n'y a rien
+        # dans la table, et le dernier id
+        # sinon
+        return 0 if last is None else last
     # Renvoie le dernier identifiant ou
     # les données sous forme de liste
-    return ([0] + ids)[-1] if only_last else ids
+    return ids
+
+
+# Fonction pour ingérer les données
+def ingester():
+    # Déclare les variables globales qu'on veut utiliser
+    global dataset_of_years
+    try:
+        # Récupère la liste des fichiers déjà téléchargés
+        downloaded = os.listdir(data_folder_path)
+        # Convertit en chaîne de caractères les années recherchées
+        dataset_of_years = [str(d) for d in dataset_of_years]
+        # Récupère le contenu de la page
+        reqs = requests.get(dataset_url)
+        # Structure le contenu de la page
+        soup = BeautifulSoup(reqs.text, "html.parser")
+        # Parcourt tous les liens sur la page
+        for link in soup.find_all("a"):
+            # Définit l'url courrant
+            url: str = link.get("href")
+            # Si le lien correspond à celui d'un fichier
+            # .parquet avec le format _tripdata_année_mois
+            if re.search(r"_tripdata_([0-9]{4})-([0-9]{2}).parquet$", url):
+                # Si on veut les fichiers de données de
+                # toutes les années ou seulement celles prises en charge
+                if dataset_of_years == "*" or re.search(
+                    "|".join(dataset_of_years), url
+                ):
+                    try:
+                        # Récupère le nom du fichier
+                        filename = url.split("/")[-1]
+                        # Si le fichier a déjà été téléchargé
+                        if filename in downloaded:
+                            # Passe au fichier suivant
+                            continue
+                        # Ouvre un fichier de même nom dans les repértoire des
+                        # fichiers de données téléchargés
+                        with open(
+                            data_folder_path + "/" + url.split("/")[-1], "wb"
+                        ) as file:
+                            # Télécharge le fichier de données
+                            file.write(requests.get(url).content)
+                    except BaseException as ex:
+                        # Affiche une erreur s'il y en a
+                        printer.red(f"[INGESTER] / Unable to download file : {file}.")
+                        # Affiche la description de l'erreur
+                        printer.red(f"[INGESTER] / {type(ex).__name__} : {ex}")
+        printer.bold("[INGESTER] / Files downloaded successfully.")
+        printer.bold("[INGESTER] / Stopping download process.")
+    except BaseException as ex:
+        # Affiche une erreur s'il y en a
+        printer.red(f"[INGESTER] / Unable to download files from {dataset_url}.")
+        # Affiche la description de l'erreur
+        printer.red(f"[INGESTER] / {type(ex).__name__} : {ex}")
 
 
 # Fonction pour initialiser le service
@@ -170,6 +249,9 @@ def init():
                 hive_client, "fait_nombre_trajet", id="id_fait_nombre_trajet"
             )
             printer.simple(f"  + LAST_ID_FAIT_NOMBRE_TRAJET [ok]")
+            # Démarre le téléchargement des fichiers de données
+            threading.Thread(target=ingester).start()
+            printer.simple(f"  + INGESTER_PROCESS [ok]")
             # Ferme la connection au Serveur Hive
             hive_client = hive_client.close()
             # Affiche que tout s'est bien passé
@@ -208,6 +290,8 @@ def init():
 # dans le dossier des données
 def extract() -> list:
     printer.bold(f"### Extraction ###")
+    # Déclare les variables globales nécessaires
+    global min_st_size, max_st_size
     # Représente la liste des fichiers à gérer
     to_handle = []
     # Tant qu'il n'y a rien à traiter,
@@ -217,8 +301,6 @@ def extract() -> list:
         # Récupère la liste des fichiers dans
         # le dossier des données
         files = os.listdir(data_folder_path)
-        # Crée le fichier de log, s'il n'existe pas.
-        open(log_path, "a+").close()
         # Ouvre le fichier de log
         handled = open(log_path, "r")
         # Récupère la liste des fichiers déjà
@@ -231,6 +313,14 @@ def extract() -> list:
         # Crée la liste des fichiers de type .parquets
         # non traités
         to_handle = pfilter(to_handle)
+        # Récupère uniquement les fichiers de taille prise en charge
+        to_handle = [
+            f
+            for f in to_handle
+            if min_st_size
+            <= (os.stat(data_folder_path + "/" + f).st_size / (1024 * 1024))
+            <= max_st_size
+        ]
         # S'il n'y a rien à traiter
         if len(to_handle) == 0:
             # Attends 5 secondes
@@ -275,11 +365,10 @@ def transform(files: list) -> list:
             # Charge le DataFrame des mois dans un fichier CSV
             monthdf.to_csv(month_dim_folder_path + "/" + file + ".csv", header=False)
             printer.purple(f"  + Dimension Mois [ok]")
-            # Calcule le dernier identifiant après chargement
-            old, last_id_dim_trip = (
-                last_id_dim_trip,
-                last_id_dim_trip + df.__len__() + 1,
-            )
+            # Garde l'ancien dernier identifiant
+            old = last_id_dim_trip
+            # Calcule le nouveau dernier identifiant après chargement
+            last_id_dim_trip = last_id_dim_trip + df.__len__() + 1
             # Génère les nouveaux identifiants des trajets
             trip_ids = list(range(old + 1, last_id_dim_trip))
             # Crée le dictionnaire des trajets avec la date de début
@@ -296,11 +385,10 @@ def transform(files: list) -> list:
             # Charge le DataFrame des trajets dans un fichier CSV
             tripdf.to_csv(trip_dim_folder_path + "/" + file + ".csv", header=False)
             printer.purple(f"  + Dimension Trajet [ok]")
-            # Calcule dernier identifiant après chargement
-            old, last_id_data_mart = (
-                last_id_data_mart,
-                last_id_data_mart + df.__len__() + 1,
-            )
+            # Garde l'ancien dernier identifiant
+            old = last_id_data_mart
+            # Calcule le nouveau dernier identifiant après chargement
+            last_id_data_mart = last_id_data_mart + df.__len__() + 1
             # Crée le DataFrame du Data Mart
             data_martdf = pd.DataFrame(
                 {
@@ -356,7 +444,7 @@ def load(files: list) -> list:
             os.unlink(f"./database/month/{file}.csv")
             # Charge les données dans la dimension trajet
             hdfs_client.upload(
-                datawarehouse_path + ".db/dimension_trajets",
+                datawarehouse_path + ".db/dimension_trajet",
                 f"./database/trip/{file}.csv",
             )
             printer.green(f"  + Dimension Trajet [ok]")

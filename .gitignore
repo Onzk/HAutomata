@@ -1,0 +1,4 @@
+data/*
+automata/*
+hdfs/*
+metastore-postgresql/*

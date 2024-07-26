@@ -63,12 +63,12 @@ services:
     depends_on:
       - datanode
 
-  # automata:
-  #   build: automata
-  #   container_name: automata
-  #   depends_on:
-  #     - hive-server
-  #     - datanode
-  #     - namenode
-  #   volumes:
-  #     - ./data:/app/data
+  automata:
+    build: automata
+    container_name: automata
+    depends_on:
+      - hive-server
+      - datanode
+      - namenode
+    volumes:
+      - ./data:/app/data

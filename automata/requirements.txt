@@ -5,3 +5,4 @@ pandas
 hdfs
 pyarrow
 fastparquet
+bs4
