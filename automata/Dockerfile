@@ -4,6 +4,10 @@ RUN mkdir /app
 
 WORKDIR /app
 
+RUN mkdir /data
+RUN mkdir /database
+RUN mkdir /logs
+
 COPY . .
 
 RUN pip install -r requirements.txt
