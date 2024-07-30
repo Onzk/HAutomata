@@ -13,7 +13,7 @@ Ce projet est un script Python conçu pour ingérer, transformer et charger des 
 
 ## Prérequis
 
-- Python 3.x
+- Python 3.12
 - Packages Python :
   - `pandas`
   - `requests`
@@ -58,7 +58,7 @@ Avant d'exécuter le script, assurez-vous que les variables de configuration sui
 Pour exécuter le script, utilisez la commande suivante :
 
 ```bash
-python <nom_du_script>.py
+python -u main.py
 ```
 
 Le script s'exécutera en boucle continue, traitant les fichiers dès qu'ils sont disponibles.
