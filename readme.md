@@ -1,73 +1,143 @@
-# Documentation du Projet
+Voici le README corrigé et structuré :
 
-## Introduction
+---
 
-Ce projet est un script Python conçu pour ingérer, transformer et charger des données provenant de fichiers `.parquet` relatifs aux trajets de taxi à New York. Les fichiers sont téléchargés depuis une URL spécifique, traités pour en extraire des dimensions temporelles et de trajets, puis chargés dans un Data Warehouse HDFS via Hive.
+# Projet d'Automatisation de Traitement de Données NYC Taxi
+
+## Description
+
+Ce projet automatise le téléchargement, la transformation et le chargement des données sur les trajets en taxi à New York. Il utilise Hadoop HDFS et Hive pour gérer les données, et est conçu pour fonctionner dans un environnement Docker avec plusieurs services interconnectés.
+
+## Structure du Projet
+
+- **`automata/`** : Code principal pour le traitement des données.
+- **`docker-compose.yml`** : Définition des services Docker nécessaires pour l'exécution du projet.
+- **`data/`** : Dossier pour stocker les fichiers de données téléchargés.
+- **`logs/`** : Dossier pour les fichiers de logs.
+- **`hdfs/`** : Dossier pour les fichiers transformés et les données du Data Mart.
+- **`metastore-postgresql/`** : Dossier pour les fichiers PostgreSQL du Hive Metastore.
+
+## Dépendances
+
+- Python 3.x
+- Pandas
+- Requests
+- BeautifulSoup4
+- PyHive
+- HDFS
+- Docker
+- Docker Compose
+
+## Installation
+
+1. **Clonez le dépôt :**
+   ```bash
+   git clone https://github.com/your-repo.git
+   cd your-repo
+   ```
+
+2. **Créez un environnement virtuel et installez les dépendances :**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
+
+3. **Configurez vos variables d'environnement :**
+   Créez un fichier `.env` avec les variables nécessaires (voir la section des services Docker pour plus de détails).
+
+## Configuration des Services Docker
+
+Le projet utilise Docker Compose pour gérer les différents services nécessaires au traitement des données. Voici les services définis dans le fichier `docker-compose.yml` :
+
+### Services
+
+#### `namenode`
+- **Image** : `bde2020/hadoop-namenode:2.0.0-hadoop2.7.4-java8`
+- **Description** : Conteneur Hadoop NameNode qui gère le namespace HDFS et les métadonnées des fichiers.
+- **Volumes** : 
+  - `./hdfs/namenode:/hadoop/dfs/name`
+- **Ports** : 
+  - `50070:50070` (Port web UI du NameNode)
+- **Environnement** :
+  - `CLUSTER_NAME=hive`
+
+#### `datanode`
+- **Image** : `bde2020/hadoop-datanode:2.0.0-hadoop2.7.4-java8`
+- **Description** : Conteneur Hadoop DataNode qui stocke les données HDFS.
+- **Volumes** :
+  - `./hdfs/datanode:/hadoop/dfs/data`
+  - `./dataset:/data`
+- **Ports** :
+  - `50075:50075` (Port web UI du DataNode)
+- **Environnement** :
+  - `SERVICE_PRECONDITION: "namenode:50070"`
+
+#### `hive-server`
+- **Image** : `bde2020/hive:2.3.2-postgresql-metastore`
+- **Description** : Serveur Hive pour les requêtes SQL.
+- **Volumes** :
+  - `./sql:/sql`
+- **Ports** :
+  - `10000:10000` (Port pour les connexions Hive)
+- **Environnement** :
+  - `HIVE_CORE_CONF_javax_jdo_option_ConnectionURL: "jdbc:postgresql://hive-metastore/metastore"`
+  - `SERVICE_PRECONDITION: "hive-metastore:9083"`
+
+#### `hive-metastore`
+- **Image** : `bde2020/hive:2.3.2-postgresql-metastore`
+- **Description** : Service Hive Metastore qui stocke les métadonnées Hive.
+- **Command** :
+  - `/opt/hive/bin/hive --service metastore`
+- **Ports** :
+  - `9083:9083` (Port pour le service metastore)
+- **Environnement** :
+  - `SERVICE_PRECONDITION: "namenode:50070 datanode:50075 hive-metastore-postgresql:5432"`
+
+#### `hive-metastore-postgresql`
+- **Image** : `bde2020/hive-metastore-postgresql:2.3.0`
+- **Description** : Base de données PostgreSQL pour Hive Metastore.
+- **Volumes** :
+  - `./metastore-postgresql/postgresql/data:/var/lib/postgresql/data`
+
+#### `automata`
+- **Build** : `automata`
+- **Description** : Conteneur principal exécutant le code d'automatisation.
+- **Volumes** :
+  - `./data:/app/data`
+- **Depends_on** :
+  - `hive-server`
+  - `datanode`
+  - `namenode`
+
+## Utilisation
+
+1. **Lancez les services Docker :**
+   ```bash
+   docker-compose up -d
+   ```
+
+2. **Exécutez le traitement des données :**
+   Le script principal `main` est exécuté automatiquement lorsque le conteneur `automata` est démarré. Il surveille en continu le dossier des données pour de nouveaux fichiers, les transforme et les charge dans HDFS et Hive.
+
+3. **Arrêtez les services Docker :**
+   ```bash
+   docker-compose down
+   ```
 
 ## Fonctionnalités
 
-1. **Téléchargement des Fichiers** : Le script télécharge les fichiers `.parquet` à partir d'une URL spécifiée, en se basant sur les années définies dans la configuration.
-2. **Extraction des Nouveaux Fichiers** : Le script recherche les nouveaux fichiers à traiter dans un répertoire local.
-3. **Transformation des Données** : Les fichiers `.parquet` sont transformés en fichiers CSV pour les dimensions "mois" et "trajet", ainsi que pour un Data Mart contenant le nombre de trajets.
-4. **Chargement des Données** : Les fichiers transformés sont chargés dans un Data Warehouse HDFS via Hive.
+- **Ingestion** : Télécharge les fichiers de données depuis le site web.
+- **Extraction** : Identifie les nouveaux fichiers à traiter.
+- **Transformation** : Convertit les fichiers en formats adaptés pour HDFS et Hive.
+- **Chargement** : Envoie les données transformées vers HDFS et Hive.
 
-## Prérequis
+## Gestion des Logs
 
-- Python 3.x
-- Packages Python :
-  - `pandas`
-  - `requests`
-  - `beautifulsoup4`
-  - `pyhive`
-  - `hdfs`
-- Serveur HDFS
-- Serveur Hive
+Les logs du processus d'automatisation sont stockés dans le fichier `./logs/handled.txt`. Assurez-vous de vérifier ce fichier pour le suivi des fichiers traités et pour toute erreur éventuelle.
 
-## Configuration
+## Avertissements
 
-Avant d'exécuter le script, assurez-vous que les variables de configuration suivantes sont correctement définies :
-
-- `dataset_url`: URL du site contenant les fichiers de données.
-- `dataset_of_years`: Liste des années à traiter (utilisez `'*'` pour toutes les années).
-- `data_folder_path`: Chemin vers le dossier contenant les fichiers à télécharger.
-- `logs_folder_path`: Chemin vers le dossier pour les fichiers de log.
-- `hdfs_url`, `hdfs_user`: URL et utilisateur du serveur HDFS.
-- `hive_host`, `hive_port`, `hive_user`: Adresse et port du serveur Hive.
-- `datawarehouse_name`: Nom du Data Warehouse dans Hive.
-- `max_init_retries`, `init_delay`: Nombre maximal de tentatives d'initialisation et délai entre les tentatives.
-
-## Structure des Répertoires
-
-- `./data`: Contient les fichiers `.parquet` téléchargés.
-- `./logs`: Contient le fichier de log `handled.txt`.
-- `./database/month`: Contient les fichiers CSV pour la dimension "mois".
-- `./database/trip`: Contient les fichiers CSV pour la dimension "trajet".
-- `./database/datamart`: Contient les fichiers CSV pour le Data Mart "fait nombre trajets".
-
-## Fonctions Principales
-
-1. **`ingester()`** : Télécharge les fichiers depuis l'URL spécifiée.
-2. **`init()`** : Initialise les connexions HDFS et Hive, récupère les fichiers traités précédemment, et démarre le processus de téléchargement.
-3. **`extract()`** : Extrait les nouveaux fichiers à partir du répertoire des données.
-4. **`transform(files: list) -> list`** : Transforme les fichiers extraits en fichiers CSV pour les dimensions et le Data Mart.
-5. **`load(files: list) -> list`** : Charge les fichiers transformés dans le Data Warehouse HDFS.
-6. **`main()`** : Fonction principale qui orchestre le processus d'extraction, transformation et chargement de manière continue.
-
-## Exécution
-
-Pour exécuter le script, utilisez la commande suivante :
-
-```bash
-python <nom_du_script>.py
-```
-
-Le script s'exécutera en boucle continue, traitant les fichiers dès qu'ils sont disponibles.
-
-## Logs
-
-Les logs des fichiers traités sont stockés dans `./logs/handled.txt`.
-
-## Gestion des Erreurs
-
-Les erreurs sont affichées dans la sortie standard et dans les logs. Les tentatives de reconnexion sont gérées lors de l'initialisation des connexions aux serveurs HDFS et Hive.
+- Assurez-vous que les chemins spécifiés dans les volumes Docker existent sur votre machine locale.
+- Les services doivent être accessibles et fonctionnels pour que le traitement des données soit effectué correctement.
 
