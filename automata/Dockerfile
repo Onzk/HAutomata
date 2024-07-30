@@ -4,14 +4,14 @@ RUN mkdir /app
 
 WORKDIR /app
 
-COPY . .
-
 RUN mkdir ./data
 RUN mkdir ./database
 RUN mkdir ./database/month
 RUN mkdir ./database/datamart
 RUN mkdir ./database/trip
 RUN mkdir ./logs
+
+COPY . .
 
 RUN pip install -r requirements.txt
 

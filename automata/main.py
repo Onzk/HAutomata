@@ -23,7 +23,7 @@ max_st_size = 25
 dataset_url = "https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page"
 
 # Années à charger : [*] => toutes les années
-dataset_of_years = [2019]
+dataset_of_years = [2015]
 
 # Chemin vers le dossier
 # contenant les fichiers à charger
