@@ -1,8 +1,33 @@
-# Projet d'Automatisation de Traitement de Données NYC Taxi
+# HAutomata / GROUPE 1
+<p align="center"><a target="_blank" href="https://github.com/Onzk/HAutomata"><img src="./assets/logo.png"  alt="PyGres Logo"/>
+Projet d'Automatisation de Traitement de Données NYC Taxi
+<p align="center">
+<a><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
+<a><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
+<a><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
+<a><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+
+</p>
 
 ## Description
 
 Ce projet automatise le téléchargement, la transformation et le chargement des données sur les trajets en taxi à New York. Il utilise Hadoop HDFS et Hive pour gérer les données, et est conçu pour fonctionner dans un environnement Docker avec plusieurs services interconnectés.
+
+## Contexte du Projet
+
+- **Université** : UCAO-UUT
+- **Année Scolare** : 2023-2024
+- **Institut** : ISTIN - Ingénieurie, Année Préparatoire
+- **Cours** : Introduction au Traitement de Données
+- **Chargé du cours** : M. TIDIYE
+- **Groupe** : 1 
+- **Membres** : 
+    - **ASSIGNON Akofala Bénédicta**, 
+    - **DOSSOU Dédé Eugénie**,
+    - **BILAZA Tchaa Jeff**,
+    - **ATCHEMI Djori Succès**,
+    - **MALLY Gracio Théophile**,
+    - **KOUDOSSOU Messan Dhani Justin**.
 
 ## Structure du Projet
 

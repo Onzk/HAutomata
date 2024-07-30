@@ -1,4 +1,13 @@
 # Documentation du Projet
+<p align="center"><a target="_blank" href="https://github.com/Onzk/HAutomata"><img src="../assets/logo.png"  alt="PyGres Logo"/>
+Projet d'Automatisation de Traitement de Données NYC Taxi
+<p align="center">
+<a><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
+<a><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
+<a><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
+<a><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+
+</p>
 
 ## Introduction
 
