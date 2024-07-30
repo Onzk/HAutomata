@@ -71,10 +71,3 @@ Les logs des fichiers traités sont stockés dans `./logs/handled.txt`.
 
 Les erreurs sont affichées dans la sortie standard et dans les logs. Les tentatives de reconnexion sont gérées lors de l'initialisation des connexions aux serveurs HDFS et Hive.
 
-## Contribution
-
-Pour toute contribution ou rapport de bugs, veuillez contacter [votre_nom] à [votre_email].
-
-## Licence
-
-Ce projet est sous licence .........
