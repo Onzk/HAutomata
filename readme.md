@@ -1,4 +1,3 @@
-
 # Projet d'Automatisation de Traitement de Données NYC Taxi
 
 ## Description
@@ -16,7 +15,7 @@ Ce projet automatise le téléchargement, la transformation et le chargement des
 
 ## Dépendances
 
-- Python 3.x
+- Python 3.12
 - Pandas
 - Requests
 - BeautifulSoup4
@@ -25,24 +24,18 @@ Ce projet automatise le téléchargement, la transformation et le chargement des
 - Docker
 - Docker Compose
 
+## Prérequis
+- Avoir un système Windows
+- Avoir une version récente de Docker (`Installation : ` https://docs.docker.com/desktop/install/windows-install/)
+
 ## Installation
 
-1. **Clonez le dépôt :**
+**Clonez le dépôt :**
    ```bash
-   git clone https://github.com/your-repo.git
-   cd your-repo
+   git clone https://github.com/HAutomata.git
+   cd HAutomata
    ```
-
-2. **Créez un environnement virtuel et installez les dépendances :**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   ```
-
-3. **Configurez vos variables d'environnement :**
-   Créez un fichier `.env` avec les variables nécessaires (voir la section des services Docker pour plus de détails).
-
+    
 ## Configuration des Services Docker
 
 Le projet utilise Docker Compose pour gérer les différents services nécessaires au traitement des données. Voici les services définis dans le fichier `docker-compose.yml` :
